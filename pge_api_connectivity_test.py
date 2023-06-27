@@ -1,6 +1,8 @@
+import os
 from email import header
 import requests
 from constant import AUTH_SERVER_TOKEN_ENDPOINT, CLIENT_ID, CLIENT_SECRET, SERVICE_STATUS_API, SAMPLE_DATA_API
+import base64
 
 class PgeApiConnectivityTest:
     def __init__(self) -> None:
@@ -11,22 +13,15 @@ class PgeApiConnectivityTest:
 
     @staticmethod
     def get_client_access_token(*, client_id: str, client_secret: str):
-        # Note: for the Access Token request you must attach your SSL Certificate.
+        cl_id =  base64.b64encode(client_id.encode("ascii"))
+        cl_sec = base64.b64encode(client_secret.encode("ascii"))
         response = requests.post(
-            url=AUTH_SERVER_TOKEN_ENDPOINT,
-            headers={"Authorization": "Base64 encoding of -- client_ID:client_Secret"},
-            json={"grant_type": "client_credentials"},
+            url=f"{AUTH_SERVER_TOKEN_ENDPOINT}",
+            data={"grant_type": "client_credentials"},
+            headers={"Authorization": f"{cl_id.decode('ascii')}:{cl_sec.decode('ascii')}"},
+            verify=f"{os.getcwd()}/certs/api.pge.com.cer",
         )
-        """return xml
-        example -- 
-        <Response xmlns="https://api.pge.com/datacustodian/oauth/v2/token">
-            <client_access_token>c03a9825-16f7-400a-b546-9a206ab995db</client_access_token>
-            <expires_in>3600</expires_in>
-            <scope>3</scope>
-            <token_type>Bearer</token_type>
-        </Response>
-        """
-        return response.json()
+        return response.text
 
     def get_status_status_api_call(self):
         response = requests.get(
@@ -35,12 +30,7 @@ class PgeApiConnectivityTest:
                 "Authorization": f"Bearer {self.client_access_token}"
             }
         )
-        """return xml
-        example -- 
-        <ServiceStatus xsi:schemaLocation="http://naesb.org/espi espiDerived.xsd" xmlns="http://naesb.org/espi" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <currentStatus>1</currentStatus>
-        </ServiceStatus>
-        """
+        print(response.json())
         return response.json()
 
     def get_sample_data(self):
